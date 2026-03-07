@@ -1,0 +1,54 @@
+<div style="max-width: 600px; margin: auto; font-family: Arial;">
+
+    <h1 style="text-align:center; color:#0b3b66;">Keycloak Angular Example</h1>
+
+    <div style="text-align:center; margin-bottom:20px;">
+        <button *ngIf="isLoggedIn"
+                (click)="logout()"
+                style="padding:10px 20px; background:#d9534f; color:white; border:none; border-radius:5px;">
+            Log out
+        </button>
+
+        <button *ngIf="!isLoggedIn"
+                (click)="login()"
+                style="padding:10px 20px; background:#0275d8; color:white; border:none; border-radius:5px;">
+            Log in
+        </button>
+    </div>
+
+    <ng-container *ngIf="userProfile">
+        <div style="background:white; padding:20px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);">
+
+            <h2 style="margin-top:0; color:#0b3b66;">User information</h2>
+
+            <table style="width:100%; border-collapse:collapse;">
+                <tr *ngIf="userProfile.preferred_username">
+                    <th style="text-align:left; padding:8px; color:#444;">Username</th>
+                    <td style="padding:8px;">{{ userProfile.preferred_username }}</td>
+                </tr>
+
+                <tr *ngIf="userProfile.given_name">
+                    <th style="text-align:left; padding:8px; color:#444;">First name</th>
+                    <td style="padding:8px;">{{ userProfile.given_name }}</td>
+                </tr>
+
+                <tr *ngIf="userProfile.family_name">
+                    <th style="text-align:left; padding:8px; color:#444;">Last name</th>
+                    <td style="padding:8px;">{{ userProfile.family_name }}</td>
+                </tr>
+
+                <tr *ngIf="userProfile.email">
+                    <th style="text-align:left; padding:8px; color:#444;">E-mail</th>
+                    <td style="padding:8px;">{{ userProfile.email }}</td>
+                </tr>
+
+                <tr>
+                    <th style="text-align:left; padding:8px; color:#444;">E-mail Verified</th>
+                    <td style="padding:8px;">{{ userProfile.emailVerified ? 'Yes' : 'No' }}</td>
+                </tr>
+            </table>
+
+        </div>
+    </ng-container>
+
+</div>

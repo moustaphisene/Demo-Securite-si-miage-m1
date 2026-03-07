@@ -1,0 +1,994 @@
+<!--
+  ~ Keycloak Demo — Cours Tokens & Securite
+  ~ GL / IAGE — OAuth2 · OpenID Connect · JWT · PKCE
+  ~
+  ~ Objectif pedagogique :
+  ~   1. Comprendre les 3 types de tokens (Access, Refresh, ID)
+  ~   2. Comprendre la structure d'un JWT (Header.Payload.Signature)
+  ~   3. Comprendre le flux OAuth2 Authorization Code + PKCE
+  ~   4. Savoir securiser une application avec Keycloak
+-->
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Keycloak — Cours Tokens &amp; Securite</title>
+
+    <!-- Keycloak JS — fourni directement par le serveur Keycloak -->
+    <!-- Ce script expose la classe globale `Keycloak` -->
+    <script src="http://localhost:8080/js/keycloak.js"></script>
+
+    <style>
+        :root {
+            --bg:       #f0f4f8;
+            --card:     #ffffff;
+            --primary:  #0b5fae;
+            --success:  #0b8640;
+            --danger:   #d9534f;
+            --warning:  #d97706;
+            --muted:    #6b7280;
+            --border:   #e2e8f0;
+            --shadow:   0 4px 16px rgba(14,30,37,.08);
+            /* couleurs JWT */
+            --jwt-blue:   #2563eb;
+            --jwt-green:  #16a34a;
+            --jwt-red:    #dc2626;
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: #0f1724;
+            -webkit-font-smoothing: antialiased;
+            padding: 16px;
+        }
+
+        /* ── Layout ──────────────────────────────────────────── */
+        .page        { max-width: 1200px; margin: 0 auto; }
+        .main-grid   { display: grid; grid-template-columns: 1fr 390px; gap: 16px; align-items: start; }
+        @media (max-width: 920px) { .main-grid { grid-template-columns: 1fr; } }
+
+        /* ── Header ──────────────────────────────────────────── */
+        .app-header {
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--card); border-radius: 12px; padding: 14px 20px;
+            box-shadow: var(--shadow); border: 1px solid var(--border);
+            margin-bottom: 16px; gap: 12px; flex-wrap: wrap;
+        }
+        .brand { display: flex; gap: 12px; align-items: center; }
+        .logo {
+            width: 44px; height: 44px; border-radius: 10px;
+            background: linear-gradient(135deg, #0b5fae, #084a8a);
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-weight: 800; font-size: 18px;
+            box-shadow: 0 3px 10px rgba(11,95,174,.2); flex-shrink: 0;
+        }
+        .brand-text h1 { margin: 0; font-size: 1rem; color: var(--primary); font-weight: 700; }
+        .brand-text p  { margin: 2px 0 0; font-size: 0.78rem; color: var(--muted); }
+        .auth-zone     { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+        /* ── Buttons ─────────────────────────────────────────── */
+        .btn {
+            border: none; padding: 8px 16px; border-radius: 8px;
+            cursor: pointer; font-weight: 600; font-size: 0.88rem;
+            transition: opacity .15s;
+        }
+        .btn:hover { opacity: .85; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-danger  { background: var(--danger);  color: white; }
+        .btn-ghost   { background: transparent; color: var(--primary); border: 1.5px solid rgba(11,95,174,.25); }
+        .btn-sm      { padding: 5px 10px; font-size: 0.8rem; }
+
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--success); font-weight: 600; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+        /* ── Cards ───────────────────────────────────────────── */
+        .card {
+            background: var(--card); border-radius: 12px; padding: 16px;
+            box-shadow: var(--shadow); border: 1px solid var(--border);
+        }
+        .card + .card { margin-top: 14px; }
+        .card-title {
+            font-size: 0.88rem; font-weight: 700; color: #0b3b66;
+            margin: 0 0 12px; display: flex; align-items: center; gap: 6px;
+        }
+
+        /* ── Tabs ────────────────────────────────────────────── */
+        .tabs { display: flex; gap: 4px; margin-bottom: 10px; flex-wrap: wrap; }
+        .tab {
+            padding: 5px 12px; border-radius: 6px; font-size: 0.8rem;
+            font-weight: 600; cursor: pointer; border: 1.5px solid transparent;
+            color: var(--muted); background: transparent;
+        }
+        .tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .tab:not(.active):hover { border-color: var(--border); color: #374151; }
+
+        /* ── Output areas ────────────────────────────────────── */
+        .output-label {
+            font-size: 0.72rem; font-weight: 600; color: var(--muted);
+            text-transform: uppercase; letter-spacing: .05em; margin: 10px 0 4px;
+        }
+        pre.output-box {
+            background: #f8fafc; border-radius: 8px; padding: 12px;
+            min-height: 80px; max-height: 280px; overflow: auto;
+            border: 1px solid var(--border);
+            white-space: pre-wrap; word-break: break-word;
+            font-family: ui-monospace, 'Cascadia Code', Menlo, monospace;
+            font-size: 0.8rem; color: #12202b; line-height: 1.55; margin: 0;
+        }
+        .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+
+        /* ── JWT Anatomy ─────────────────────────────────────── */
+        .jwt-raw {
+            font-family: ui-monospace, Menlo, monospace; font-size: 0.75rem;
+            word-break: break-all; line-height: 1.7; padding: 10px;
+            background: #f8fafc; border-radius: 8px; border: 1px solid var(--border);
+        }
+        .jwt-h   { color: var(--jwt-blue);  font-weight: 700; }
+        .jwt-p   { color: var(--jwt-green); font-weight: 700; }
+        .jwt-s   { color: var(--jwt-red);   font-weight: 700; }
+        .jwt-dot { color: #374151; font-weight: 900; }
+
+        .jwt-section {
+            border-radius: 6px; padding: 8px 10px; margin-top: 6px;
+            font-family: ui-monospace, Menlo, monospace; font-size: 0.75rem;
+            white-space: pre-wrap; word-break: break-word; line-height: 1.5;
+        }
+        .jwt-section-header  { background: #eff6ff; border-left: 3px solid var(--jwt-blue);  }
+        .jwt-section-payload { background: #f0fdf4; border-left: 3px solid var(--jwt-green); }
+        .jwt-section-sig     { background: #fef2f2; border-left: 3px solid var(--jwt-red);   }
+        .jwt-section-title {
+            font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .08em; margin-bottom: 5px; font-family: Inter, sans-serif;
+        }
+        .c-blue   { color: var(--jwt-blue);  }
+        .c-green  { color: var(--jwt-green); }
+        .c-red    { color: var(--jwt-red);   }
+
+        /* ── Countdown ───────────────────────────────────────── */
+        .countdown-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+        .countdown-item { background: #f8fafc; border-radius: 8px; padding: 10px; border: 1px solid var(--border); text-align: center; }
+        .countdown-label { font-size: 0.68rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+        .countdown-value { font-size: 1.35rem; font-weight: 800; margin: 4px 0 2px; font-family: ui-monospace, Menlo, monospace; }
+        .c-ok      { color: var(--success); }
+        .c-warn    { color: var(--warning); }
+        .c-expired { color: var(--danger);  }
+        .countdown-sub { font-size: 0.68rem; color: var(--muted); }
+        .progress-bar  { height: 4px; background: #e2e8f0; border-radius: 4px; margin-top: 6px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 4px; transition: width 1s linear, background-color 1s; }
+
+        /* ── Explainer boxes ─────────────────────────────────── */
+        .box {
+            border-radius: 8px; padding: 10px 12px; margin-top: 8px;
+            font-size: 0.8rem; line-height: 1.55;
+        }
+        .box.blue   { background: #eff6ff; border-left: 3px solid #3b82f6; color: #1e3a5f; }
+        .box.green  { background: #f0fdf4; border-left: 3px solid #22c55e; color: #14532d; }
+        .box.orange { background: #fff7ed; border-left: 3px solid #f97316; color: #7c2d12; }
+        .box.purple { background: #faf5ff; border-left: 3px solid #a855f7; color: #3b0764; }
+        .box strong { font-weight: 700; }
+        code { font-family: ui-monospace, Menlo, monospace; font-size: .9em; }
+
+        /* ── Flow steps ──────────────────────────────────────── */
+        .flow-step { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+        .flow-step:last-child { border-bottom: none; }
+        .step-num {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: var(--primary); color: white;
+            font-size: 0.7rem; font-weight: 700;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
+        }
+        .step-text { font-size: 0.8rem; line-height: 1.45; }
+        .step-text strong { display: block; color: #0b3b66; margin-bottom: 2px; }
+        .step-text span   { color: var(--muted); }
+
+        /* ── Claims table ────────────────────────────────────── */
+        .claims-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
+        .claims-table th { text-align: left; padding: 4px 8px; background: #f1f5f9; color: var(--muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: .05em; }
+        .claims-table td { padding: 5px 8px; border-top: 1px solid var(--border); vertical-align: top; }
+        .claims-table td:first-child { font-family: ui-monospace, Menlo, monospace; color: var(--primary); font-weight: 600; white-space: nowrap; }
+
+        /* ── Toggle ──────────────────────────────────────────── */
+        .toggle-row { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; margin-top: 12px; }
+        input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; accent-color: var(--primary); }
+
+        footer { text-align: center; color: var(--muted); font-size: 0.76rem; margin-top: 16px; padding: 10px; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <!-- ================================================================
+         HEADER
+         ================================================================ -->
+    <header class="app-header">
+        <div class="brand">
+            <div class="logo">KC</div>
+            <div class="brand-text">
+                <h1>Keycloak Demo — Cours Tokens &amp; Securite</h1>
+                <p>GL / IAGE &mdash; OAuth2 &middot; OpenID Connect &middot; JWT &middot; PKCE</p>
+            </div>
+        </div>
+        <div class="auth-zone" role="region" aria-label="Actions d'authentification">
+            <button id="btnLogin"  class="btn btn-primary" onclick="keycloak.login()">Se connecter</button>
+            <button id="btnLogout" class="btn btn-danger"  onclick="keycloak.logout()" style="display:none">Deconnexion</button>
+            <div id="connStatus" class="status-badge" style="display:none" aria-live="polite">
+                <span class="dot"></span>
+                <span id="statusText">Connecte</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ================================================================
+         MAIN GRID
+         ================================================================ -->
+    <div class="main-grid">
+
+        <!-- ============================================================
+             COLONNE GAUCHE
+             ============================================================ -->
+        <div>
+
+            <!-- Controles + onglets tokens + output + events -->
+            <div class="card">
+                <h3 class="card-title">Controles Keycloak</h3>
+                <div class="btn-row">
+                    <button class="btn btn-ghost btn-sm" onclick="refreshToken(9999)">Forcer le Refresh</button>
+                    <button class="btn btn-ghost btn-sm" onclick="refreshToken(30)">Refresh si &lt;30s</button>
+                    <button class="btn btn-ghost btn-sm" onclick="loadUserInfo()">User Info</button>
+                    <button class="btn btn-ghost btn-sm" onclick="showExpires()">Expiration</button>
+                    <button class="btn btn-ghost btn-sm" onclick="showRawTokens()">Tokens bruts</button>
+                </div>
+
+                <!--
+                    PEDAGOGIE — LES 3 TYPES DE TOKENS
+                    ──────────────────────────────────────────────────────
+                    Access Token  : preuve d'AUTORISATION, envoye a l'API
+                    Refresh Token : permet de renouveler l'Access Token
+                    ID Token      : preuve d'IDENTITE, consomme par le client
+                -->
+                <div class="tabs" role="tablist" aria-label="Types de tokens">
+                    <button class="tab active" role="tab" aria-selected="true"  onclick="switchTab('access')"  id="tab-access" >Access Token</button>
+                    <button class="tab"        role="tab" aria-selected="false" onclick="switchTab('refresh')" id="tab-refresh">Refresh Token</button>
+                    <button class="tab"        role="tab" aria-selected="false" onclick="switchTab('id')"      id="tab-id"     >ID Token</button>
+                </div>
+                <div id="token-display">
+                    <p style="color:var(--muted);font-size:0.82rem;margin:0">Connectez-vous pour explorer les tokens.</p>
+                </div>
+
+                <div class="output-label">Resultat des actions</div>
+                <pre id="output" class="output-box">Initialisation Keycloak en cours...</pre>
+
+                <div class="output-label">Journal des evenements</div>
+                <pre id="events" class="output-box" style="min-height:55px">Aucun evenement pour l'instant.</pre>
+
+                <!--
+                    PEDAGOGIE — AUTO-REFRESH
+                    L'app doit renouveler l'Access Token AVANT son expiration
+                    pour eviter des erreurs 401 sur l'API.
+                    On utilise le Refresh Token pour cela, sans redemander
+                    les identifiants a l'utilisateur.
+                -->
+                <div class="toggle-row">
+                    <input type="checkbox" id="autoRefresh" onchange="toggleAutoRefresh(this)">
+                    <label for="autoRefresh" style="cursor:pointer">
+                        <strong>Auto-refresh</strong> &mdash; renouveler l'Access Token automatiquement avant expiration
+                    </label>
+                </div>
+            </div>
+
+            <!-- Flux OAuth2 + PKCE -->
+            <div class="card">
+                <h3 class="card-title">Flux OAuth2 Authorization Code + PKCE (S256) — Etape par etape</h3>
+
+                <div class="flow-step">
+                    <div class="step-num">1</div>
+                    <div class="step-text">
+                        <strong>Generation du code_verifier (cote client)</strong>
+                        <span>L'app genere un secret aleatoire (<code>code_verifier</code>) et calcule son hash SHA-256 (<code>code_challenge = SHA256(verifier)</code>).</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="step-num">2</div>
+                    <div class="step-text">
+                        <strong>Redirection vers Keycloak</strong>
+                        <span>L'app redirige l'utilisateur vers Keycloak en envoyant le <code>code_challenge</code> (jamais le secret).</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="step-num">3</div>
+                    <div class="step-text">
+                        <strong>Authentification sur la page Keycloak</strong>
+                        <span>L'utilisateur saisit ses identifiants SUR la page Keycloak. L'app ne voit jamais le mot de passe.</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="step-num">4</div>
+                    <div class="step-text">
+                        <strong>Retour avec un authorization_code ephemere</strong>
+                        <span>Keycloak redirige vers l'app avec un code dans le fragment (#) de l'URL. Ce code est valide ~1 minute, une seule utilisation.</span>
+                    </div>
+                </div>
+                <div class="flow-step">
+                    <div class="step-num">5</div>
+                    <div class="step-text">
+                        <strong>Echange du code contre les tokens</strong>
+                        <span>L'app envoie le <code>code</code> + le <code>code_verifier</code> original. Keycloak verifie que <code>SHA256(verifier) == challenge</code> et retourne les 3 tokens.</span>
+                    </div>
+                </div>
+
+                <div class="box orange">
+                    <strong>Pourquoi PKCE ?</strong><br>
+                    Si un attaquant intercepte le <code>authorization_code</code> (ex: via les logs de proxy),
+                    il ne peut rien faire car il n'a pas le <code>code_verifier</code> qui n'a jamais
+                    transite sur le reseau. PKCE est obligatoire pour les apps publiques (SPA, mobile)
+                    qui n'ont pas de <code>client_secret</code>.
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ============================================================
+             COLONNE DROITE
+             ============================================================ -->
+        <div>
+
+            <!-- Compteurs de duree de vie -->
+            <div class="card">
+                <h3 class="card-title">Duree de vie des tokens (en temps reel)</h3>
+                <div class="countdown-grid">
+                    <div class="countdown-item">
+                        <div class="countdown-label">Access Token</div>
+                        <div class="countdown-value c-ok" id="atCountdown">--</div>
+                        <div class="countdown-sub" id="atExpires">Non connecte</div>
+                        <div class="progress-bar"><div class="progress-fill" id="atProgress" style="width:0%;background:#16a34a"></div></div>
+                    </div>
+                    <div class="countdown-item">
+                        <div class="countdown-label">Refresh Token</div>
+                        <div class="countdown-value c-ok" id="rtCountdown">--</div>
+                        <div class="countdown-sub" id="rtExpires">Non connecte</div>
+                        <div class="progress-bar"><div class="progress-fill" id="rtProgress" style="width:0%;background:#16a34a"></div></div>
+                    </div>
+                </div>
+                <div class="box blue">
+                    <strong>Access Token</strong> (~5 min) : envoye a l'API dans <code>Authorization: Bearer &lt;token&gt;</code>.<br>
+                    <strong>Refresh Token</strong> (~30 min) : utilise uniquement pour obtenir un nouvel Access Token. Ne jamais l'envoyer a une API tierce.
+                </div>
+            </div>
+
+            <!-- Anatomie JWT -->
+            <div class="card">
+                <h3 class="card-title">Anatomie du JWT (Access Token decode)</h3>
+                <!--
+                    PEDAGOGIE — STRUCTURE D'UN JWT
+                    ─────────────────────────────────────────────────────
+                    Un JWT est compose de 3 parties separees par un point :
+                        HEADER.PAYLOAD.SIGNATURE
+                    - HEADER  : algo de signature utilise (ex: RS256)
+                    - PAYLOAD : les claims (informations sur l'utilisateur)
+                    - SIGNATURE: garantit que personne n'a modifie le token
+
+                    Header et Payload sont en Base64Url (decodables).
+                    La Signature est cryptographique (RSA/HMAC) — on peut
+                    la verifier avec la cle publique Keycloak mais pas la
+                    recalculer sans la cle privee.
+                -->
+                <div id="jwt-anatomy-display">
+                    <p style="color:var(--muted);font-size:0.82rem;margin:0">Connectez-vous pour decoder le token.</p>
+                </div>
+                <div class="box purple">
+                    Structure : <span class="jwt-h" style="font-family:monospace">HEADER</span><span class="jwt-dot">.</span><span class="jwt-p" style="font-family:monospace">PAYLOAD</span><span class="jwt-dot">.</span><span class="jwt-s" style="font-family:monospace">SIGNATURE</span><br>
+                    Le Payload est lisible par n'importe qui (base64). La securite repose sur la <strong>Signature</strong> que seul Keycloak peut creer avec sa cle privee RSA.
+                </div>
+            </div>
+
+            <!-- Glossaire des claims -->
+            <div class="card">
+                <h3 class="card-title">Glossaire des claims JWT</h3>
+                <table class="claims-table">
+                    <thead><tr><th>Claim</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td>sub</td><td>Subject — identifiant unique de l'utilisateur (UUID)</td></tr>
+                        <tr><td>iss</td><td>Issuer — URL du Keycloak emetteur. A verifier cote serveur !</td></tr>
+                        <tr><td>aud</td><td>Audience — client(s) pour qui ce token est destine</td></tr>
+                        <tr><td>exp</td><td>Expiration — timestamp Unix (secondes). Token refuse si depasse</td></tr>
+                        <tr><td>iat</td><td>Issued At — timestamp de creation du token</td></tr>
+                        <tr><td>jti</td><td>JWT ID — identifiant unique (anti-rejeu)</td></tr>
+                        <tr><td>realm_access</td><td>Roles definis au niveau du realm Keycloak</td></tr>
+                        <tr><td>resource_access</td><td>Roles par client (application)</td></tr>
+                        <tr><td>preferred_username</td><td>Nom d'utilisateur Keycloak</td></tr>
+                        <tr><td>email</td><td>Email (si scope <code>email</code> demande)</td></tr>
+                        <tr><td>scope</td><td>Permissions accordees : openid, profile, email...</td></tr>
+                        <tr><td>azp</td><td>Authorized party — client qui a demande le token</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bonnes pratiques securite -->
+            <div class="card">
+                <h3 class="card-title">Securite — Bonnes pratiques</h3>
+                <div class="box green">
+                    <strong>A faire cote serveur (API) :</strong><br>
+                    &bull; Verifier la signature avec la cle publique Keycloak<br>
+                    &bull; Verifier <code>exp</code> (non expire)<br>
+                    &bull; Verifier <code>iss</code> (votre realm Keycloak)<br>
+                    &bull; Verifier <code>aud</code> (votre client)<br>
+                    &bull; Verifier les roles requis dans <code>realm_access</code>
+                </div>
+                <div class="box orange">
+                    <strong>A faire cote client (SPA) :</strong><br>
+                    &bull; Stocker les tokens en memoire (pas en localStorage !)<br>
+                    &bull; Utiliser PKCE — obligatoire pour les apps publiques<br>
+                    &bull; Renouveler l'Access Token via le Refresh Token<br>
+                    &bull; Utiliser <code>responseMode: 'fragment'</code> (code dans le #hash)
+                </div>
+                <div class="box" style="background:#fef2f2;border-left:3px solid var(--danger);color:#7f1d1d;margin-top:8px">
+                    <strong>A ne JAMAIS faire :</strong><br>
+                    &bull; Faire confiance au token sans verifier la signature<br>
+                    &bull; Exposer un <code>client_secret</code> dans du code frontend<br>
+                    &bull; Utiliser le flow Implicit (deprecie depuis OAuth 2.1)<br>
+                    &bull; Envoyer le Refresh Token a une API tierce
+                </div>
+                <div class="box blue" style="margin-top:8px;font-size:0.75rem">
+                    <strong>Cle publique Keycloak (pour valider les signatures) :</strong><br>
+                    <code>GET /realms/bzhcamp/protocol/openid-connect/certs</code>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <footer>Cours Securite &mdash; GL / IAGE &mdash; Keycloak &middot; OAuth2 &middot; OIDC &middot; JWT</footer>
+</div>
+
+<!-- ================================================================
+     JAVASCRIPT
+     ================================================================ -->
+<script>
+    /* =================================================================
+     * PEDAGOGIE — LES 3 TOKENS KEYCLOAK
+     * =================================================================
+     *
+     * Apres une authentification reussie, Keycloak retourne 3 tokens :
+     *
+     * 1. ACCESS TOKEN (JWT)
+     *    - Court-lived : par defaut 5 minutes
+     *    - Contient les roles, email, sub, etc.
+     *    - Envoye a chaque appel API : Authorization: Bearer <token>
+     *    - L'API DOIT verifier sa signature avant de l'accepter
+     *    → keycloak.token (brut) / keycloak.tokenParsed (decode)
+     *
+     * 2. REFRESH TOKEN
+     *    - Long-lived : par defaut 30 minutes
+     *    - Ne contient PAS les roles (pas destine a l'API)
+     *    - Utilise UNIQUEMENT pour obtenir un nouvel Access Token
+     *    → keycloak.refreshToken / keycloak.refreshTokenParsed
+     *
+     * 3. ID TOKEN (OpenID Connect)
+     *    - Contient les informations d'identite de l'utilisateur
+     *    - Utilise par le CLIENT (l'app), pas par l'API
+     *    - Prouve que l'utilisateur s'est bien authentifie
+     *    → keycloak.idToken / keycloak.idTokenParsed
+     *
+     * =================================================================
+     * VALIDATION COTE SERVEUR
+     * =================================================================
+     *
+     * Pour une API qui recoit un Access Token :
+     *   1. Recuperer la cle publique RSA de Keycloak :
+     *      GET /realms/bzhcamp/protocol/openid-connect/certs
+     *   2. Verifier la signature du JWT avec cette cle
+     *   3. Verifier exp > maintenant
+     *   4. Verifier iss == "http://localhost:8080/realms/bzhcamp"
+     *   5. Verifier aud contient votre client
+     *   6. Verifier les roles dans realm_access.roles
+     *
+     * En Java Spring Boot, tout cela est fait automatiquement par :
+     *   spring-boot-starter-oauth2-resource-server
+     *
+     * =================================================================
+     */
+
+    // ── Instance Keycloak ────────────────────────────────────────────
+    // new Keycloak() charge automatiquement keycloak.json (realm, url, client)
+    var keycloak = new Keycloak();
+
+    // ── Etat de l'application ────────────────────────────────────────
+    var currentTab        = 'access';  // onglet actif
+    var countdownInterval = null;      // intervalle du compteur
+    var autoRefreshEnabled = false;    // auto-renouvellement du token
+
+
+    /* =================================================================
+     * CALLBACKS KEYCLOAK
+     * =================================================================
+     * Ces fonctions sont appelees automatiquement par la librairie
+     * Keycloak JS en reponse aux evenements du cycle de vie de la session.
+     */
+
+    // Appele quand l'authentification reussit (login ou session restauree)
+    keycloak.onAuthSuccess = function () {
+        addEvent('Auth Success — 3 tokens recus (Access + Refresh + ID)');
+        updateTokenDisplay();
+        startCountdown();
+        updateAuthButtons(true);
+    };
+
+    // Appele en cas d'erreur d'authentification
+    keycloak.onAuthError = function (errorData) {
+        addEvent('Auth Error: ' + JSON.stringify(errorData));
+    };
+
+    // Appele quand le token est rafraichi avec succes via le Refresh Token
+    // → un NOUVEAU couple Access Token + Refresh Token a ete emis
+    // → l'ancien Access Token est desormais invalide
+    keycloak.onAuthRefreshSuccess = function () {
+        addEvent('Token rafraichi — nouvel Access Token emis, ancien invalide');
+        updateTokenDisplay();
+    };
+
+    // Appele quand le refresh echoue (Refresh Token expire → reconnexion obligatoire)
+    keycloak.onAuthRefreshError = function () {
+        addEvent('Refresh Error — Refresh Token expire, reconnexion necessaire');
+    };
+
+    // Appele quand l'utilisateur se deconnecte (keycloak.logout() ou session SSO expiree)
+    keycloak.onAuthLogout = function () {
+        addEvent('Deconnecte — tokens revoques');
+        stopCountdown();
+        clearTokenDisplay();
+        updateAuthButtons(false);
+    };
+
+    // Appele quand l'Access Token expire (selon keycloak.tokenParsed.exp)
+    // Si auto-refresh est active, on renouvelle automatiquement
+    keycloak.onTokenExpired = function () {
+        addEvent('Access Token expire !');
+        if (autoRefreshEnabled) {
+            keycloak.updateToken(30).catch(function () {
+                addEvent('Impossible de rafraichir — reconnexion requise');
+            });
+        }
+    };
+
+    // Appele apres une "required action" (ex: changer son mot de passe)
+    keycloak.onActionUpdate = function (status) {
+        var msgs = {
+            success:   'Action completee avec succes',
+            cancelled: 'Action annulee par l\'utilisateur',
+            error:     'Erreur lors de l\'action'
+        };
+        addEvent(msgs[status] || 'Action: ' + status);
+    };
+
+
+    /* =================================================================
+     * INITIALISATION
+     * =================================================================
+     */
+    var initOptions = {
+        // responseMode: 'fragment'
+        //   → le authorization_code arrive dans le #hash de l'URL
+        //   → plus sur que 'query' : le fragment n'est pas envoye au serveur
+        responseMode: 'fragment',
+
+        // flow: 'standard' = Authorization Code Flow (recommande)
+        //       'implicit'  = DEPRECIE depuis OAuth 2.1 — ne pas utiliser
+        //       'hybrid'    = cas particuliers OIDC
+        flow: 'standard',
+
+        // pkceMethod: 'S256'
+        //   → active PKCE avec hash SHA-256
+        //   → obligatoire pour les applications publiques (sans client_secret)
+        //   → protege contre l'interception du authorization_code
+        pkceMethod: 'S256',
+    };
+
+    keycloak.init(initOptions).then(function (authenticated) {
+        if (authenticated) {
+            output(
+                'Keycloak initialise — session active trouvee.\n' +
+                'Utilisateur : ' + (keycloak.tokenParsed.preferred_username || keycloak.tokenParsed.sub) + '\n\n' +
+                'Explorez les onglets (Access / Refresh / ID Token) pour\n' +
+                'inspecter le contenu de chaque token.'
+            );
+            updateAuthButtons(true);
+            updateTokenDisplay();
+            startCountdown();
+        } else {
+            output(
+                'Keycloak initialise — aucune session active.\n\n' +
+                'Cliquez sur "Se connecter" pour demarrer le flux\n' +
+                'OAuth2 Authorization Code + PKCE.'
+            );
+            updateAuthButtons(false);
+        }
+    }).catch(function () {
+        output(
+            'Erreur d\'initialisation Keycloak.\n\n' +
+            'Verifiez que :\n' +
+            '  1. Keycloak tourne sur http://localhost:8080\n' +
+            '  2. Le realm "bzhcamp" existe\n' +
+            '  3. Le client "bzhcamp" est configure en public-client'
+        );
+    });
+
+
+    /* =================================================================
+     * FONCTIONS PRINCIPALES
+     * =================================================================
+     */
+
+    /**
+     * loadUserInfo()
+     *
+     * Appelle le endpoint UserInfo d'OpenID Connect :
+     *   GET /realms/bzhcamp/protocol/openid-connect/userinfo
+     *   Header: Authorization: Bearer <access_token>
+     *
+     * C'est un exemple concret d'appel API securise par un Bearer Token.
+     * Le serveur Keycloak verifie l'Access Token et retourne les infos.
+     */
+    function loadUserInfo() {
+        keycloak.loadUserInfo().then(function (userInfo) {
+            output(userInfo);
+        }).catch(function () {
+            output('Impossible de charger les infos utilisateur.\nEtes-vous connecte ?');
+        });
+    }
+
+    /**
+     * refreshToken(minValidity)
+     *
+     * keycloak.updateToken(minValidity) :
+     *   - Si l'Access Token expire dans moins de minValidity secondes → refresh
+     *   - Sinon → ne fait rien
+     *
+     * minValidity = 9999  → force le refresh immediat (utile en demo)
+     * minValidity = 30    → refresh uniquement si expiration dans < 30s
+     *                       (utilise en production pour anticiper l'expiration)
+     *
+     * En interne, Keycloak JS envoie le Refresh Token au serveur et recoit
+     * un nouveau couple (Access Token + Refresh Token).
+     */
+    function refreshToken(minValidity) {
+        keycloak.updateToken(minValidity).then(function (refreshed) {
+            if (refreshed) {
+                output(
+                    'Token rafraichi avec succes !\n' +
+                    'Nouvel Access Token valide jusqu\'a : ' +
+                    new Date((keycloak.tokenParsed.exp + keycloak.timeSkew) * 1000).toLocaleString()
+                );
+                updateTokenDisplay();
+            } else {
+                var remaining = Math.round(
+                    keycloak.tokenParsed.exp + keycloak.timeSkew - new Date().getTime() / 1000
+                );
+                output(
+                    'Refresh non necessaire.\n' +
+                    'Token encore valide ' + remaining + 's\n' +
+                    '(minValidity = ' + minValidity + 's → condition non atteinte)'
+                );
+            }
+        }).catch(function () {
+            output('Refresh echoue — le Refresh Token est peut-etre expire.\nReconnectez-vous.');
+        });
+    }
+
+    /**
+     * showExpires()
+     * Affiche les dates et durees d'expiration des tokens.
+     */
+    function showExpires() {
+        if (!keycloak.tokenParsed) { output('Non authentifie.'); return; }
+        var now = new Date().getTime() / 1000;
+        var atRemaining = Math.round(keycloak.tokenParsed.exp + keycloak.timeSkew - now);
+
+        var o = '=== EXPIRATION DES TOKENS ===\n\n';
+        o += 'Access Token\n';
+        o += '  Expire le : ' + new Date((keycloak.tokenParsed.exp + keycloak.timeSkew) * 1000).toLocaleString() + '\n';
+        o += '  Reste     : ' + atRemaining + ' secondes\n';
+        o += '  exp (raw) : ' + keycloak.tokenParsed.exp + ' (timestamp Unix)\n\n';
+
+        if (keycloak.refreshTokenParsed) {
+            var rtRemaining = Math.round(keycloak.refreshTokenParsed.exp + keycloak.timeSkew - now);
+            o += 'Refresh Token\n';
+            o += '  Expire le : ' + new Date((keycloak.refreshTokenParsed.exp + keycloak.timeSkew) * 1000).toLocaleString() + '\n';
+            o += '  Reste     : ' + rtRemaining + ' secondes\n\n';
+        }
+        o += 'Note: keycloak.timeSkew = ' + keycloak.timeSkew + 's\n';
+        o += '(decalage horloge client/serveur compense par Keycloak JS)';
+        output(o);
+    }
+
+    /**
+     * showRawTokens()
+     * Affiche les tokens dans leur forme brute (base64url).
+     *
+     * PEDAGOGIE : Copiez un token sur https://jwt.io pour le decoder
+     * visuellement et voir la structure Header.Payload.Signature.
+     * Cela montre que le contenu est LISIBLE mais pas FALSIFIABLE.
+     */
+    function showRawTokens() {
+        if (!keycloak.token) { output('Non authentifie.'); return; }
+        var o = '=== TOKENS BRUTS (Base64Url) ===\n\n';
+        o += '--- ACCESS TOKEN ---\n' + keycloak.token + '\n\n';
+        if (keycloak.refreshToken) {
+            o += '--- REFRESH TOKEN ---\n' + keycloak.refreshToken + '\n\n';
+        }
+        if (keycloak.idToken) {
+            o += '--- ID TOKEN ---\n' + keycloak.idToken + '\n\n';
+        }
+        o += 'Astuce : copiez un token sur jwt.io pour le visualiser.';
+        output(o);
+    }
+
+    /**
+     * output(data) — affiche des donnees dans la zone resultat
+     * Utilise textContent (pas innerHTML) pour eviter les injections XSS.
+     */
+    function output(data) {
+        if (typeof data === 'object') {
+            data = JSON.stringify(data, null, '  ');
+        }
+        document.getElementById('output').textContent = data;
+    }
+
+    /**
+     * addEvent(message) — ajoute une ligne dans le journal des evenements
+     */
+    function addEvent(message) {
+        var el = document.getElementById('events');
+        var ts = new Date().toLocaleTimeString();
+        el.textContent = '[' + ts + '] ' + message + '\n' + el.textContent;
+    }
+
+
+    /* =================================================================
+     * ONGLETS — affichage des tokens
+     * =================================================================
+     */
+
+    function switchTab(tab) {
+        currentTab = tab;
+        ['access', 'refresh', 'id'].forEach(function (t) {
+            var el = document.getElementById('tab-' + t);
+            el.classList.toggle('active', t === tab);
+            el.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+        });
+        updateTokenDisplay();
+    }
+
+    function updateTokenDisplay() {
+        var container = document.getElementById('token-display');
+        var parsed, description;
+
+        if (currentTab === 'access') {
+            parsed = keycloak.tokenParsed;
+            description =
+                'Envoye a chaque appel API dans Authorization: Bearer <token>.\n' +
+                'L\'API doit verifier sa signature avec la cle publique Keycloak.';
+        } else if (currentTab === 'refresh') {
+            parsed = keycloak.refreshTokenParsed;
+            description =
+                'Utilise UNIQUEMENT pour renouveler l\'Access Token.\n' +
+                'Ne jamais l\'envoyer a une API tierce.';
+        } else {
+            parsed = keycloak.idTokenParsed;
+            description =
+                'Contient les informations d\'identite (OpenID Connect).\n' +
+                'Utilise par le client (l\'app), pas par l\'API.';
+        }
+
+        if (!parsed) {
+            container.innerHTML = '<p style="color:var(--muted);font-size:0.82rem;margin:0">Token non disponible. Connectez-vous d\'abord.</p>';
+            return;
+        }
+
+        var html = '<div class="output-label">Payload decode (claims)</div>';
+        html += '<pre class="output-box" style="max-height:180px">' + esc(JSON.stringify(parsed, null, '  ')) + '</pre>';
+        html += '<div class="box blue" style="font-size:0.78rem;margin-top:6px">' + esc(description) + '</div>';
+        container.innerHTML = html;
+
+        // Mettre a jour l'anatomie JWT seulement pour l'Access Token
+        if (currentTab === 'access' && keycloak.token) {
+            updateJwtAnatomy(keycloak.token);
+        } else if (currentTab !== 'access') {
+            document.getElementById('jwt-anatomy-display').innerHTML =
+                '<p style="color:var(--muted);font-size:0.82rem;margin:0">L\'anatomie JWT est affichee pour l\'Access Token.</p>';
+        }
+    }
+
+    /**
+     * updateJwtAnatomy(rawToken)
+     *
+     * Decode visuellement un JWT en ses 3 parties :
+     *   HEADER (bleu)  → algo de signature
+     *   PAYLOAD (vert) → claims (informations)
+     *   SIGNATURE (rouge) → non recalculable sans cle privee
+     *
+     * IMPORTANT : decoder != valider.
+     * N'importe qui peut decoder le payload (base64).
+     * Seul un serveur avec la cle publique peut VERIFIER la signature.
+     */
+    function updateJwtAnatomy(rawToken) {
+        var container = document.getElementById('jwt-anatomy-display');
+        var parts = rawToken.split('.');
+        if (parts.length !== 3) {
+            container.innerHTML = '<p style="color:var(--muted);font-size:0.82rem">Token non standard.</p>';
+            return;
+        }
+
+        var headerB64  = parts[0];
+        var payloadB64 = parts[1];
+        var sigB64     = parts[2];
+
+        var headerObj, payloadObj;
+        try {
+            headerObj  = JSON.parse(atob(headerB64.replace(/-/g, '+').replace(/_/g, '/')));
+            payloadObj = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')));
+        } catch (e) {
+            container.innerHTML = '<p style="color:var(--danger);font-size:0.82rem">Erreur de decodage Base64.</p>';
+            return;
+        }
+
+        // Token brut colore (tronque pour lisibilite)
+        var html = '<div class="jwt-raw">';
+        html += '<span class="jwt-h">'   + esc(headerB64) + '</span>';
+        html += '<span class="jwt-dot">.</span>';
+        html += '<span class="jwt-p">'   + esc(payloadB64.substring(0, 48)) + '&hellip;</span>';
+        html += '<span class="jwt-dot">.</span>';
+        html += '<span class="jwt-s">'   + esc(sigB64.substring(0, 24)) + '&hellip;</span>';
+        html += '</div>';
+
+        // Section HEADER
+        html += '<div class="jwt-section jwt-section-header">';
+        html += '<div class="jwt-section-title c-blue">Header — Algorithme de signature</div>';
+        html += esc(JSON.stringify(headerObj, null, 2));
+        html += '</div>';
+
+        // Section PAYLOAD (claims importants seulement)
+        var importantKeys = ['sub','iss','aud','exp','iat','jti','preferred_username','email','scope','realm_access','azp'];
+        var importantClaims = {};
+        importantKeys.forEach(function (k) {
+            if (payloadObj[k] !== undefined) importantClaims[k] = payloadObj[k];
+        });
+        html += '<div class="jwt-section jwt-section-payload">';
+        html += '<div class="jwt-section-title c-green">Payload — Claims (informations)</div>';
+        html += esc(JSON.stringify(importantClaims, null, 2));
+        html += '</div>';
+
+        // Section SIGNATURE
+        html += '<div class="jwt-section jwt-section-sig">';
+        html += '<div class="jwt-section-title c-red">Signature — Garantit l\'integrite du token</div>';
+        html += 'RSA-SHA256(\n  base64url(header) + "." + base64url(payload),\n  privateKey  // seul Keycloak la possede\n)\n\nVerifiable avec la cle publique :\nGET /realms/bzhcamp/protocol/openid-connect/certs';
+        html += '</div>';
+
+        container.innerHTML = html;
+    }
+
+    function clearTokenDisplay() {
+        document.getElementById('token-display').innerHTML =
+            '<p style="color:var(--muted);font-size:0.82rem;margin:0">Connectez-vous pour voir les tokens.</p>';
+        document.getElementById('jwt-anatomy-display').innerHTML =
+            '<p style="color:var(--muted);font-size:0.82rem;margin:0">Connectez-vous pour decoder le token.</p>';
+    }
+
+
+    /* =================================================================
+     * COMPTEURS DE DUREE DE VIE
+     * =================================================================
+     * Met a jour chaque seconde les barres de progression et les
+     * compteurs affichant le temps restant avant expiration.
+     *
+     * Bonne pratique : renouveler l'Access Token quand il reste ~30s
+     * pour eviter des erreurs 401 pendant les appels API en cours.
+     */
+
+    function startCountdown() {
+        stopCountdown();
+        updateCountdown();
+        countdownInterval = setInterval(updateCountdown, 1000);
+    }
+
+    function stopCountdown() {
+        if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+        ['at', 'rt'].forEach(function (p) {
+            document.getElementById(p + 'Countdown').textContent = '--';
+            document.getElementById(p + 'Countdown').className = 'countdown-value c-ok';
+            document.getElementById(p + 'Expires').textContent = 'Non connecte';
+            document.getElementById(p + 'Progress').style.width = '0%';
+        });
+    }
+
+    function updateCountdown() {
+        if (!keycloak.tokenParsed) return;
+        var now = new Date().getTime() / 1000;
+
+        // Access Token
+        var atTotal     = keycloak.tokenParsed.exp - keycloak.tokenParsed.iat;
+        var atRemaining = Math.round(keycloak.tokenParsed.exp + keycloak.timeSkew - now);
+        var atPct       = Math.max(0, Math.min(100, (atRemaining / atTotal) * 100));
+        setCountdown('at', atRemaining, atTotal, atPct,
+            new Date((keycloak.tokenParsed.exp + keycloak.timeSkew) * 1000));
+
+        // Refresh Token
+        if (keycloak.refreshTokenParsed) {
+            var rtTotal     = keycloak.refreshTokenParsed.exp - keycloak.refreshTokenParsed.iat;
+            var rtRemaining = Math.round(keycloak.refreshTokenParsed.exp + keycloak.timeSkew - now);
+            var rtPct       = Math.max(0, Math.min(100, (rtRemaining / rtTotal) * 100));
+            setCountdown('rt', rtRemaining, rtTotal, rtPct,
+                new Date((keycloak.refreshTokenParsed.exp + keycloak.timeSkew) * 1000));
+        }
+    }
+
+    function setCountdown(prefix, remaining, total, pct, expDate) {
+        var valEl = document.getElementById(prefix + 'Countdown');
+        var subEl = document.getElementById(prefix + 'Expires');
+        var barEl = document.getElementById(prefix + 'Progress');
+
+        if (remaining <= 0) {
+            valEl.textContent = 'Expire';
+            valEl.className = 'countdown-value c-expired';
+            barEl.style.width = '0%';
+            barEl.style.background = '#dc2626';
+        } else {
+            var mins = Math.floor(remaining / 60);
+            var secs = remaining % 60;
+            valEl.textContent = mins > 0 ? mins + 'm ' + secs + 's' : secs + 's';
+            valEl.className = 'countdown-value ' + (pct > 50 ? 'c-ok' : pct > 20 ? 'c-warn' : 'c-expired');
+            barEl.style.width = pct + '%';
+            barEl.style.background = pct > 50 ? '#16a34a' : pct > 20 ? '#d97706' : '#dc2626';
+        }
+        subEl.textContent = 'Expire : ' + expDate.toLocaleTimeString();
+    }
+
+
+    /* =================================================================
+     * AUTO-REFRESH
+     * =================================================================
+     * Quand active, le token sera renouvele automatiquement dans
+     * keycloak.onTokenExpired (ci-dessus).
+     *
+     * En production, on preferera appeler updateToken(30) avant
+     * chaque appel API important pour s'assurer que le token est frais.
+     */
+    function toggleAutoRefresh(checkbox) {
+        autoRefreshEnabled = checkbox.checked;
+        addEvent(autoRefreshEnabled
+            ? 'Auto-refresh active — renouvellement avant expiration'
+            : 'Auto-refresh desactive'
+        );
+    }
+
+
+    /* =================================================================
+     * HELPERS
+     * =================================================================
+     */
+
+    function updateAuthButtons(authenticated) {
+        document.getElementById('btnLogin').style.display  = authenticated ? 'none' : 'inline-block';
+        document.getElementById('btnLogout').style.display = authenticated ? 'inline-block' : 'none';
+        var statusEl = document.getElementById('connStatus');
+        statusEl.style.display = authenticated ? 'inline-flex' : 'none';
+        if (authenticated && keycloak.tokenParsed) {
+            document.getElementById('statusText').textContent =
+                'Connecte — ' + (keycloak.tokenParsed.preferred_username || keycloak.tokenParsed.sub);
+        }
+    }
+
+    // esc() — echappe les caracteres HTML pour eviter les injections XSS
+    // Toujours utiliser cette fonction avant d'injecter des donnees dans innerHTML
+    function esc(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+</script>
+</body>
+</html>
