@@ -7,7 +7,7 @@ server:
 
 logging:
   level:
-    root: DEBUG
+    root: INFO
     freemarker: INFO
     org.springframework.ui.freemarker: INFO
   pattern:

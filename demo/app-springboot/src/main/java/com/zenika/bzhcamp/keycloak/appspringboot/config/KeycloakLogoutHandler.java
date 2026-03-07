@@ -4,13 +4,17 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * Gère la déconnexion côté Keycloak (back-channel logout).
@@ -19,8 +23,9 @@ import org.springframework.web.util.UriComponentsBuilder;
  * invalider sa session chez Keycloak, sinon il resterait connecté sur d'autres apps
  * du même realm.
  *
- * Mécanisme : appel HTTP GET sur l'endpoint /protocol/openid-connect/logout
+ * Mécanisme : appel HTTP POST sur l'endpoint /protocol/openid-connect/logout
  * avec le paramètre id_token_hint (le token ID de l'utilisateur).
+ * NOTE : La spec OIDC exige un POST, pas un GET, pour l'endpoint de déconnexion.
  */
 @Component
 public class KeycloakLogoutHandler implements LogoutHandler {
@@ -46,12 +51,17 @@ public class KeycloakLogoutHandler implements LogoutHandler {
         // L'endpoint de déconnexion est fourni par le serveur OIDC dans son well-known
         String endSessionEndpoint = user.getIssuer() + "/protocol/openid-connect/logout";
 
-        // id_token_hint permet à Keycloak d'identifier la session à invalider
-        UriComponentsBuilder builder = UriComponentsBuilder
-                .fromUriString(endSessionEndpoint)
-                .queryParam("id_token_hint", user.getIdToken().getTokenValue());
+        // id_token_hint envoyé en POST body (form-urlencoded) — requis par la spec OIDC
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        ResponseEntity<String> logoutResponse = restTemplate.getForEntity(builder.toUriString(), String.class);
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("id_token_hint", user.getIdToken().getTokenValue());
+
+        HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(body, headers);
+
+        ResponseEntity<String> logoutResponse = restTemplate.postForEntity(
+                endSessionEndpoint, requestEntity, String.class);
 
         if (logoutResponse.getStatusCode().is2xxSuccessful()) {
             logger.info("Successfully logged out from Keycloak");

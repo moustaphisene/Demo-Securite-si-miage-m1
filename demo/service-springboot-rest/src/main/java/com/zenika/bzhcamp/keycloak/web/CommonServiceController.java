@@ -18,7 +18,7 @@ public class CommonServiceController {
     private static final Logger logger = LoggerFactory.getLogger(CommonServiceController.class);
 
 	@GetMapping(value = "/public", produces = MediaType.APPLICATION_JSON_VALUE)
-	@CrossOrigin(origins = "*")
+	@CrossOrigin(origins = {"http://localhost:8090", "http://localhost:4200", "http://localhost:8081"})
 	public Map<String, String> handlePublicRequest(HttpServletRequest request) {
 		logger.info("new request");		
 		return Collections.singletonMap("message", "public");

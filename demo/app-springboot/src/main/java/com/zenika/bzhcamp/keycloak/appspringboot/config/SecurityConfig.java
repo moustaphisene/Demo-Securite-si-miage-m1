@@ -21,7 +21,6 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.web.reactive.function.client.ServletOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2UserAuthority;
-import org.springframework.security.oauth2.server.resource.web.reactive.function.client.ServletBearerExchangeFilterFunction;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
@@ -116,6 +115,9 @@ class SecurityConfig {
     public GrantedAuthoritiesMapper userAuthoritiesMapperForKeycloak() {
         return authorities -> {
             Set<GrantedAuthority> mappedAuthorities = new HashSet<>();
+            if (authorities == null || authorities.isEmpty()) {
+                return mappedAuthorities;
+            }
             var authority = authorities.iterator().next();
             boolean isOidc = authority instanceof OidcUserAuthority;
 
