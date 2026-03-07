@@ -1,0 +1,17 @@
+server:
+  port: 8091
+
+logging:
+  level:
+    root: INFO
+  pattern:
+    console: "%highlight(%-5level) [%blue(%t)] %yellow(%C{1.}): %msg%n%throwable"
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/bzhcamp
+          jwk-set-uri: http://localhost:8080/realms/bzhcamp/protocol/openid-connect/certs
+

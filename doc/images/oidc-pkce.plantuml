@@ -1,0 +1,40 @@
+@startuml
+
+!theme cerulean-outline
+
+hide footbox
+
+title Authentication OIDC + PKCE
+
+Participant "Utilisateur" as EndUser
+Participant "Navigateur" as Browser
+Participant "Application" as RelyingParty
+Participant "OpenId Provider" as OpenIdProvider
+
+group #F0F0F0 Not OIDC
+    EndUser->Browser: 
+    Browser->RelyingParty: 
+
+    RelyingParty->RelyingParty: Utilisateur non authentifié
+end group
+RelyingParty->RelyingParty: PKCE: Code Verifier + Code Chalenge
+RelyingParty->Browser: Redirection avec ""client_id""\n + ""redirect_uri"" + Code Chalenge + ...
+
+Browser->OpenIdProvider:
+group #F0F0F0 Not OIDC
+    EndUser <-> OpenIdProvider: Justifie de son identité
+end group
+OpenIdProvider->Browser: Envoi d'un ""code"" d'autorisation à l'application
+
+Browser->RelyingParty:
+
+RelyingParty->OpenIdProvider: Envoi du ""code"" d'autorisation\n + Code Verifier
+OpenIdProvider->OpenIdProvider: Vérifie HASH(Code Verifier) == Code Chalenge
+OpenIdProvider->RelyingParty: Retourne ""id_token"", ""access_token"", ""refresh_token""
+
+group #F0F0F0 Not OIDC
+    RelyingParty->Browser:
+    Browser->EndUser:
+end group
+
+@enduml

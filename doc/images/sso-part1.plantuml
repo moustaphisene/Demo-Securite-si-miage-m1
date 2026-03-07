@@ -1,0 +1,66 @@
+@startuml
+!theme cerulean-outline
+hide footbox
+
+title Multiple applications
+
+Actor "User" as user order 10
+
+Participant "Browser" as browser order 11
+
+Participant "Application 1" as app1 order 20
+Participant "Application 2" as app2 order 30
+
+Participant "Royaume Keycloak" as realm1 order 40
+
+== Application 1 ==
+
+user -> browser : Login to Application 1
+browser -> app1
+app1 -> browser: Redirection to OpenId Provider
+browser -> realm1
+
+group Authentication
+    realm1 -> realm1: No SSO Cookie
+
+    user <-> realm1: Fill credentials inputs
+
+    realm1 -> realm1: Check credentials
+end group
+
+realm1 -> realm1: Begin User Session
+activate realm1 #LightBlue
+realm1 -> browser: redirection to Application 1 with ""auth_code""
+
+note left of browser #LightBlue
+<:cookie:> ""KEYCLOAK_IDENTITY""
+end note
+
+browser -> app1:
+app1 -> realm1: Send ""auth_code""
+realm1 -> app1: ""access_token"", ""id_token"" for Application 1
+
+app1 -> browser: Requested page
+
+...
+
+' == Application 2 ==
+
+' user -> browser : Login to Application 2
+' browser -> app2
+' app2 -> browser: Redirection to OpenId Provider
+' browser -> realm1: with <:cookie:> ""KEYCLOAK_IDENTITY""
+
+' group SSO
+'     realm1 -> realm1: Found SSO Cookie\nAnd Valid session
+' end group
+
+' realm1 -> browser: redirection to Application 2 with ""auth_code""
+
+' browser -> app2:
+' app2 -> realm1: Send ""auth_code""
+' realm1 -> app2: ""access_token"", ""id_token"" for Application 2
+
+' app2 -> browser: Requested page
+
+@enduml

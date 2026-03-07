@@ -1,0 +1,8 @@
+{
+  "realm": "bzhcamp",
+  "auth-server-url": "http://localhost:8080/",
+  "ssl-required": "external",
+  "resource": "myapp",
+  "public-client": true,
+  "confidential-port": 0
+}

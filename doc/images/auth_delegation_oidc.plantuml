@@ -1,0 +1,48 @@
+@startuml
+!theme cerulean-outline
+hide footbox
+
+title Authentication + délégation OIDC
+
+Participant "Utilisateur" as EndUser
+Participant "Navigateur" as Browser
+Participant "Application" as RelyingParty
+Participant "OpenId Provider" as OpenIdProvider
+Participant "IdP Distant" as OtherIdp
+
+EndUser->Browser: Accède au site
+Browser->RelyingParty:
+
+RelyingParty->RelyingParty: Utilisateur non authentifié
+RelyingParty->Browser: Redirection vers le serveur d'authentification
+
+== Debut authetification ==
+
+Browser->OpenIdProvider:
+OpenIdProvider->Browser: retourne la mire d'authentification
+Browser->EndUser: Affiche la mire d'authentification
+
+EndUser->Browser:
+Browser->OpenIdProvider: Choix délégation
+
+== Debut délégation (OIDC) ==
+OpenIdProvider->Browser: Redirection vers l'Idp distant (Auth Request)
+Browser->OtherIdp:
+OtherIdp->Browser: retourne la mire d'authentification
+Browser->EndUser: Affiche la mire d'authentification Idp Distant
+EndUser->Browser:
+Browser->OtherIdp:
+
+OtherIdp->Browser: code d'autorisation de l'Idp Distant
+Browser->OpenIdProvider:
+
+OpenIdProvider-> OtherIdp: échange code d'autorisation de l'Idp Distant
+OtherIdp->OpenIdProvider: Retourne un token d'acces de l'Idp Distant
+== Fin délégation (OIDC)==
+
+OpenIdProvider->OpenIdProvider: First Broker Login
+OpenIdProvider->Browser: Redirection vers l'application ...
+
+... etc ...
+
+@enduml

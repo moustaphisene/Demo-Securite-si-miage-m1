@@ -1,0 +1,58 @@
+= Parcours initiatique sur l'authentification avec Keycloak
+BreizhCamp - Juin 2024
+Jérôme Marchand
+//:title-logo-image: image:images/logo2x-beta_1479154817.png[]
+:toc:
+:toc-title: Sommaire
+:revealjs_theme: simple
+:revealjs_customtheme: my.css
+:revealjs_hash: true
+:revealjs_width: 1300
+:docinfo: shared
+
+== Présentation
+
+[%step]
+* Jérôme Marchand [fragment fade-out]#& Adrien Watez#
+* Consultant et Formateur chez Zenika
+** Keycloak
+** IaC
+** DevOps
+
+== Context
+
+[%step]
+* Guilde des marchands de la planète Coruscant
+* Mise en place d'un Système d'information partagé
+
+[.notes]
+--
+On entend souvent parler de SSO (Single-Sign On), OIDC (OpenId Connect) ou encore SAML (Security Assertion Markup Language), on vous propose un parcours initiatique à travers un codelab pour vous expliquer tous ces termes complexes.
+
+Durant ce codelab vous aurez une architecture microservice, un front et Keycloak qui est devenu un outil incontournable quand on parle d’authentification et d'autorisation. Votre objectif sera de comprendre et mettre en place différentes manières de sécuriser et de s’authentifier sur votre application.
+
+Pourquoi pas aller jusqu'à l'usage de WebAuthN, ce nouveau standard d’authentification sans mot de passe… et gérer des niveaux d’authentification différents en fonction des applications.
+--
+
+== Code Lab
+
+
+[.smaller]
+--
+* Clonez le repo https://github.com/jermarchand/BzhCamp2024Keycloak
+* Dans le répertoire `demo`:
+** Lancez la commande `docker compose up --build`
+** dans le répertoire `keycloak-angular`, lancez la commande `npm instal`
+** dans le répertoire `service-springboot-rest`, lancez la commande `mnv compile`
+** dans le répertoire `app-springboot`, lancez la commande `mnv compile`
+--
+
+include::00_rappels.adoc[leveloffset=1]
+
+include::01_presentation_kc.adoc[leveloffset=1]
+
+include::02_flow_auth.adoc[leveloffset=1]
+
+include::03_applications.adoc[leveloffset=1]
+
+include::04_next.adoc[leveloffset=1]

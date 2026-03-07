@@ -1,0 +1,27 @@
+= Flow Auth 
+
+[%notitle]
+== Browser flow
+
+[.stretch]
+[plantuml, target=browser-flow, format=svg]
+....
+include::images/browser-flow.plantuml[]
+....
+
+== Demo
+
+J'ai pas compris, montre moi comment je m'authentifie
+
+== Demo
+
+La guilde a des clés d'authentification, on peut les utiliser ?
+
+[%notitle]
+== WebAuthN
+
+[.stretch]
+[plantuml, target=webauthn-flow, format=svg]
+....
+include::images/webauthn-flow.plantuml[]
+....

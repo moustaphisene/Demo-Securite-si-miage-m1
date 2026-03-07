@@ -1,0 +1,11 @@
+.login-pf body {
+    background: url("../img/background.webp") no-repeat top left fixed;
+    background-color: white;
+    
+    height: 100%;
+
+    /* Center and scale the image nicely */
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+}

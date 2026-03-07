@@ -1,0 +1,39 @@
+@startuml
+
+!theme cerulean-outline
+
+start
+floating note left: OIDC HTTP request
+
+partition WebAuthn Flow {
+  fork
+      ->Alternative;
+      partition Step : Cookie {
+        if (KEYCLOAK_IDENTITY\n& User session ) then (valid)
+          :SSO authenticated;
+        else (next)
+          stop
+        endif
+      }
+  fork again
+      ->Alternative\n\n\n;
+      partition SubFlow : Form {
+        partition Step : Username Password Form {
+          repeat :Display login Form to user;
+          ->submit credentials;
+          backward:Error message;
+          repeat while (Username + Password Valid ?)
+        }
+          partition Step : WebAuthn Authenticator {
+            repeat :Display WebAuthn Authenticator to user;
+              ->submit otp code;
+              backward:Error message;
+            repeat while (OTP Valid ?)
+          }
+      
+        :Authenticated;
+      }
+
+  end fork {or}
+}
+@enduml

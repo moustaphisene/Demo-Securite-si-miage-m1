@@ -1,0 +1,68 @@
+= Rappels
+
+== Identity and Access Management
+
+[.smaller]
+[quote,Wikipedia]
+--
+Identity management (IdM), also known as identity and access management (IAM or IdAM), is a framework of policies and technologies to ensure that the right users (that are part of the ecosystem connected to or within an enterprise) have the appropriate access to technology resources.
+
+IdM systems fall under the overarching umbrellas of IT security and data management.
+Identity and access management systems not only identify, authenticate, and control access for individuals who will be utilizing IT resources but also the hardware and applications employees need to access.
+--
+
+== Le commerçant Kettch
+
+[.smaller]
+[%step]
+* Le commerçant Kettch se rend au marché
+* Pour y entrer, le garde de faction lui demande un "laissez-passer" bien rempli et certifié par l'empire
+* Le commerçant se rend à un poste de garde et demande le "laissez-passer"
+* Il indique qui il est
+* On lui donne son "laissez-passer" certifié
+* Il retourne au marché et donne le "laissez-passer" au garde
+* Celui-ci vérifie l’authenticité 
+* Et laisse le commerçant entrer dans le marché.
+
+[%notitle]
+== SAML
+
+[.stretch]
+[plantuml, target=saml, format=svg]
+....
+include::images/saml.plantuml[]
+....
+
+== Magris Quill le livreur 
+
+[.smaller]
+[%step]
+* Magris Quill va au dépôt
+* Pour l’utiliser, le garde de faction lui demande son "laissez-passer"
+* Magris Quill se rend au poste de garde et il indique qui il est
+* On lui donne un badge avec un numéro qu’il faut remettre au garde
+* Le garde prends le badge et le donne a un coursier qui va au poste de garde
+* Au poste de garde, on donne au messager le "laissez-passer" correspondant au badge
+* Le messager peut rapporter le "laissez-passer" au garde
+* Le garde laisse Magris Quill entrer dans le dépôt
+
+[%notitle]
+== OpendIdConnect
+
+[.stretch]
+[plantuml, target=oidc-pkce, format=svg]
+....
+include::images/oidc-pkce.plantuml[]
+....
+
+== Démo
+
+Comment on entre ?
+
+== Analyse 
+
+[%step]
+* Bonnes pratiques
+* Application BackEnd vs Front & Mobile
+* Front vs Back Channel
+* Single Logout

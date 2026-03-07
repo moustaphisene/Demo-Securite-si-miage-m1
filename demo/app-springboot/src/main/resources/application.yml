@@ -1,0 +1,46 @@
+server:
+  connection-timeout: 5000
+  port: 8090
+  error:
+    whitelabel:
+      enabled: false
+
+logging:
+  level:
+    root: DEBUG
+    freemarker: INFO
+    org.springframework.ui.freemarker: INFO
+  pattern:
+    console: "%highlight(%-5level) [%blue(%t)] %yellow(%C{1.}): %msg%n%throwable"
+    
+
+planets:
+  service:
+    url: http://localhost:8091/planets
+
+spring:
+  freemarker.cache: false
+
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8080/realms/bzhcamp
+            user-name-attribute: preferred_username
+
+        registration:
+          keycloak:
+            client-id: app-springboot
+            # Ne jamais mettre un secret en dur dans le code source !
+            # Utiliser une variable d'environnement : export KEYCLOAK_CLIENT_SECRET=<votre_secret>
+            client-secret: ${KEYCLOAK_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            
+            scope: 
+              - openid
+
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/bzhcamp
+

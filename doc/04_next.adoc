@@ -1,0 +1,41 @@
+= Conclusion
+
+== Délégation d'authentification
+
+* SAML
+* OIdC
+* "Social"
+
+[%notitle]
+== Flow
+
+[.stretch]
+[plantuml, target=auth_delegation_oidc, format=svg]
+....
+include::images/auth_delegation_oidc.plantuml[]
+....
+
+== Fédération
+
+* LDAP
+* Kerberos
+* Custo
+
+[%notitle]
+== Flow
+
+[.stretch]
+[plantuml, target=ldapflow, format=svg]
+....
+include::images/ldapflow.plantuml[]
+....
+
+== Merci
+
+[%notitle]
+== Zenika
+
+[.stretch]
+image::images/Zenika.jpeg[]
+
+TODO: Lien OpenFeedback
