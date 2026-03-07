@@ -3,68 +3,77 @@ package com.zenika.bzhcamp.keycloak.appspringboot.web;
 import java.security.Principal;
 import java.util.List;
 
+import com.zenika.bzhcamp.keycloak.appspringboot.service.PlanetsService;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
-import org.springframework.security.oauth2.client.annotation.RegisteredOAuth2AuthorizedClient;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import com.zenika.bzhcamp.keycloak.appspringboot.service.PlanetsService;
-
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
 public class PlanetsController {
 
-        private static final Logger logger = LoggerFactory.getLogger(PlanetsController.class);
+    private static final Logger logger = LoggerFactory.getLogger(PlanetsController.class);
 
-        @Autowired
-        private PlanetsService planetsService;
+    private final PlanetsService planetsService;
+    private final HttpServletRequest request;
 
-        @Autowired
-        private HttpServletRequest request;
+    /**
+     * Injection par constructeur : bonne pratique recommandée par Spring.
+     * Avantages : les dépendances sont explicites, la classe est testable sans conteneur Spring,
+     * et les champs peuvent être déclarés final (immuabilité).
+     */
+    public PlanetsController(PlanetsService planetsService, HttpServletRequest request) {
+        this.planetsService = planetsService;
+        this.request = request;
+    }
 
-        public PlanetsController() {
-        }
+    @RequestMapping(value = "/")
+    public String landing() {
+        return "landing";
+    }
 
-        @RequestMapping(value = "/")
-        public String landing() throws ServletException {
-                return "landing";
-        }
+    @RequestMapping(value = "/logout")
+    public String handleLogout(HttpServletRequest request) throws ServletException {
+        request.logout();
+        return "redirect:/";
+    }
 
-        @RequestMapping(value = "/logout")
-        public String handleLogoutt(HttpServletRequest request) throws ServletException {
-                request.logout();
-                return "redirect:/";
-        }
+    @RequestMapping(value = "/about")
+    public String about() {
+        return "about";
+    }
 
-        @RequestMapping(value = "/about")
-        public String about() throws ServletException {
-                return "about";
-        }
+    @GetMapping("favicon.ico")
+    @ResponseBody
+    void returnNoFavicon() {
+    }
 
-        @GetMapping("favicon.ico")
-        @ResponseBody
-        void returnNoFavicon() {
-        }
+    /**
+     * Endpoint protégé par rôle Keycloak.
+     *
+     * @PreAuthorize("hasRole('user')") vérifie que l'utilisateur possède le rôle "user"
+     * dans Keycloak (mappé en "ROLE_user" par userAuthoritiesMapperForKeycloak).
+     *
+     * Pour tester avec un rôle "admin" uniquement : @PreAuthorize("hasRole('admin')")
+     * Pour plusieurs rôles : @PreAuthorize("hasAnyRole('admin', 'user')")
+     *
+     * Note : ce rôle doit être créé dans le realm Keycloak et assigné à l'utilisateur.
+     */
+    @RequestMapping(value = "/planets")
+    @PreAuthorize("hasRole('user')")
+    public String handlePlanetsRequest(Principal principal, Model model) {
+        logger.info("User {} accessed /planets", principal.getName());
+        model.addAttribute("principal", principal);
 
-        @RequestMapping(value = "/planets")
-        public String handleCustomersRequest(
-                        Principal principal,
-                        Model model) {
-                logger.info(principal.toString());
-                model.addAttribute("principal", principal);
+        List<String> planets = planetsService.getPlanets();
+        model.addAttribute("planets", planets);
 
-                List<String> planets = planetsService.getPlanets();
-                model.addAttribute("planets", planets);
-
-                return "planets";
-        }
+        return "planets";
+    }
 }
