@@ -47,11 +47,11 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
-                //sh 'echo "Branch: ${GIT_BRANCH} | Commit: ${GIT_COMMIT[0..7]}"'
-                script {
-                    def shortCommit = env.GIT_COMMIT.take(8)
-                    sh "echo Branch: ${env.GIT_BRANCH} | Commit: ${shortCommit}"
-                }
+                sh 'echo "Branch: ${GIT_BRANCH} | Commit: ${GIT_COMMIT[0..7]}"'
+//                 script {
+//                     def shortCommit = env.GIT_COMMIT.take(8)
+//                     sh "echo Branch: ${env.GIT_BRANCH} | Commit: ${shortCommit}"
+//                 }
             }
         }
 
