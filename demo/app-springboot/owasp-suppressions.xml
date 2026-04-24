@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+
+    <!--
+        Fichier de suppressions OWASP Dependency Check.
+        Ajouter ici les faux-positifs ou CVE acceptées avec leur justification.
+
+        Format :
+        <suppress>
+            <notes>Justification — accepté le JJ/MM/AAAA par [nom]</notes>
+            <cve>CVE-YYYY-XXXXX</cve>
+        </suppress>
+
+        Ou par package GAV :
+        <suppress>
+            <notes>...</notes>
+            <gav regex="true">^org\.example:artifact:.*$</gav>
+            <cve>CVE-YYYY-XXXXX</cve>
+        </suppress>
+    -->
+
+    <!-- Exemple : suppression d'un faux positif spring-boot-devtools en dev -->
+    <!--
+    <suppress>
+        <notes>spring-boot-devtools n'est pas embarqué en production (scope: optional)</notes>
+        <gav regex="true">^org\.springframework\.boot:spring-boot-devtools:.*$</gav>
+        <cve>CVE-YYYY-XXXXX</cve>
+    </suppress>
+    -->
+
+</suppressions>

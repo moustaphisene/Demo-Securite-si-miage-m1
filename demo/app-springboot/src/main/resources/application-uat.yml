@@ -1,0 +1,24 @@
+planets:
+  service:
+    url: http://poc-keycloak-service-uat:8091/planets
+
+spring:
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            # Valeur injectée par Jenkins via variable d'environnement KEYCLOAK_ISSUER_URI
+            issuer-uri: ${KEYCLOAK_ISSUER_URI:http://keycloak-uat:8080/realms/bzhcamp}
+        registration:
+          keycloak:
+            client-id: app-springboot
+            client-secret: ${KEYCLOAK_CLIENT_SECRET}
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://keycloak-uat:8080/realms/bzhcamp}
+
+logging:
+  level:
+    root: INFO
+    com.zenika: DEBUG

@@ -1,0 +1,18 @@
+planets:
+  service:
+    url: http://localhost:8091/planets
+
+spring:
+  security:
+    oauth2:
+      client:
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8080/realms/bzhcamp
+        registration:
+          keycloak:
+            client-id: app-springboot
+            client-secret: ${KEYCLOAK_CLIENT_SECRET}
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/bzhcamp
