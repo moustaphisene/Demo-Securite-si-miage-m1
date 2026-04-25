@@ -24,7 +24,7 @@ class KeycloakJwtRolesConverterTest {
     @Test
     void convert_shouldExtractRealmRoles() {
         Jwt jwt = buildJwt(
-                Map.of("realm_access", Map.of("roles", List.of("admin", "user"))),
+                Map.of("roles", List.of("admin", "user")),
                 Map.of()
         );
 
@@ -61,7 +61,7 @@ class KeycloakJwtRolesConverterTest {
     @Test
     void convert_shouldExtractBothRealmAndResourceRoles() {
         Jwt jwt = buildJwt(
-                Map.of("realm_access", Map.of("roles", List.of("admin"))),
+                Map.of("roles", List.of("admin")),
                 Map.of("app-client", Map.of("roles", List.of("viewer")))
         );
 
