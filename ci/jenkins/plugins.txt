@@ -1,0 +1,40 @@
+# =============================================================================
+# Plugins Jenkins — compatibles avec Jenkins 2.462.3-lts-jdk17
+# jenkins-plugin-cli résout automatiquement les versions compatibles.
+# =============================================================================
+
+# --- Pipeline ---
+workflow-aggregator
+pipeline-stage-view
+pipeline-graph-analysis
+
+# --- Source Control ---
+git
+github
+
+# --- Qualité de code ---
+sonar
+
+# --- Sécurité des dépendances ---
+dependency-check-jenkins-plugin
+
+# --- Docker ---
+docker-workflow
+docker-commons
+
+# --- Credentials ---
+credentials-binding
+
+# --- Rapports de tests ---
+junit
+jacoco
+
+# --- Notifications ---
+email-ext
+mailer
+
+# --- Utilitaires ---
+timestamper
+build-timeout
+antisamy-markup-formatter
+ws-cleanup
