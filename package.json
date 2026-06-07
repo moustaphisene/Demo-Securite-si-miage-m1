@@ -1,0 +1,23 @@
+{
+  "name": "mbacdsdkeycloak",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "npx asciidoctor-revealjs -r asciidoctor-kroki -o doc/index.html doc/main.adoc",
+    "watch": "onchange 'doc/*' -- npx asciidoctor-revealjs -r asciidoctor-kroki -o doc/index.html doc/main.adoc",
+    "serve": "browser-sync start --server . --startPath doc/index.html --files 'doc/*.html, doc/assets/**/*'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@asciidoctor/reveal.js": "^5.1.0",
+    "asciidoctor": "^3.0.4",
+    "asciidoctor-kroki": "^0.18.1"
+  },
+  "devDependencies": {
+    "browser-sync": "^3.0.2",
+    "onchange": "^7.1.0"
+  }
+}

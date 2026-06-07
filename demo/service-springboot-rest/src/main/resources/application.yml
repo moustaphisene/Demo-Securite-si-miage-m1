@@ -7,6 +7,13 @@ logging:
   pattern:
     console: "%highlight(%-5level) [%blue(%t)] %yellow(%C{1.}): %msg%n%throwable"
 
+# Audience attendue dans le claim "aud" du JWT (validation opt-in — voir AudienceValidator).
+# Laissée vide => validation d'audience désactivée (comportement par défaut de la démo).
+# Pour l'activer : renseigner la valeur ici ou via la variable d'environnement KEYCLOAK_AUDIENCE,
+# ET configurer un "Audience mapper" côté Keycloak pour que le jeton porte cette audience.
+keycloak:
+  audience: ${KEYCLOAK_AUDIENCE:}
+
 spring:
   security:
     oauth2:

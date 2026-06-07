@@ -42,5 +42,7 @@ spring:
 
       resourceserver:
         jwt:
+          # Le serveur de ressources DOIT valider les jetons du même realm que le flux de login.
+          # (Auparavant pointé par erreur sur un realm inexistant dans ce POC.)
           issuer-uri: http://localhost:8080/realms/bzhcamp
 

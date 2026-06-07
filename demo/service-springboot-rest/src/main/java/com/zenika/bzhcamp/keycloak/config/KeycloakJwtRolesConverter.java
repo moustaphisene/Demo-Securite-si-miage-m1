@@ -70,8 +70,18 @@ public class KeycloakJwtRolesConverter implements Converter<Jwt, Collection<Gran
     if (resourceAccess != null && !resourceAccess.isEmpty()) {
       // Iterate of all the resources
       resourceAccess.forEach((resource, resourceClaims) -> {
+        // A resource entry may legitimately have no "roles" key. Guard against a malformed or
+        // partial resource_access claim so a crafted token yields empty authorities (clean 403)
+        // rather than a NullPointerException surfaced as HTTP 500.
+        if (resourceClaims == null) {
+          return;
+        }
+        Collection<String> resourceRoles = resourceClaims.get(CLAIM_ROLES);
+        if (resourceRoles == null || resourceRoles.isEmpty()) {
+          return;
+        }
         // Iterate of the "roles" claim inside the resource claims
-        resourceClaims.get(CLAIM_ROLES).forEach(
+        resourceRoles.forEach(
                 // Add the role to the granted authority prefixed with ROLE_ and the name of the resource
                 role -> grantedAuthorities.add(new SimpleGrantedAuthority(PREFIX_RESOURCE_ROLE + resource + "_" + role))
         );
