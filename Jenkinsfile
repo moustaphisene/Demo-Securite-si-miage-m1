@@ -24,7 +24,7 @@ pipeline {
     }
 
     environment {
-        DOCKER_HUB_USER   = 'moustaphisene'
+        DOCKER_HUB_USER   = 'fatoumatakm'
         APP_IMAGE         = "${DOCKER_HUB_USER}/poc-keycloak-app"
         SVC_IMAGE         = "${DOCKER_HUB_USER}/poc-keycloak-service"
         IMAGE_TAG         = "v${BUILD_NUMBER}"
@@ -98,6 +98,7 @@ pipeline {
                         sh '''
                             mvn org.owasp:dependency-check-maven:10.0.3:check \
                                 -DnvdApiKey=${NVD_KEY} \
+                                -DossindexAnalyzerEnabled=false \
                                 -DfailBuildOnCVSS=10 \
                                 -DcveValidForHours=12 \
                                 -Dformat=ALL \
@@ -109,6 +110,7 @@ pipeline {
                         sh '''
                             mvn org.owasp:dependency-check-maven:10.0.3:check \
                                 -DnvdApiKey=${NVD_KEY} \
+                                -DossindexAnalyzerEnabled=false \
                                 -DfailBuildOnCVSS=10 \
                                 -DcveValidForHours=12 \
                                 -Dformat=ALL \
@@ -119,11 +121,15 @@ pipeline {
             }
             post {
                 always {
-                    dependencyCheckPublisher(
-                        pattern: '**/target/dependency-check-report.xml',
-                        failedTotalCritical: 1,
-                        unstableTotalHigh: 5
-                    )
+                 dependencyCheckPublisher(
+                                 pattern: '**/target/dependency-check-report.xml',
+                                 failedTotalCritical: 1,
+                                 unstableTotalHigh: 5
+                 )
+                   archiveArtifacts(
+                                 artifacts: '**/target/dependency-check-report.html',
+                                 allowEmptyArchive: true
+                   )
                 }
             }
         }
@@ -136,7 +142,7 @@ pipeline {
                 withSonarQubeEnv('SonarQube') {
                     dir('demo/app-springboot') {
                         sh '''
-                            mvn sonar:sonar \
+                            mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
                                 -Dsonar.projectKey=${SONAR_KEY_APP} \
                                 -Dsonar.projectName="POC Keycloak - App" \
                                 -Dsonar.java.source=17 \
@@ -146,7 +152,7 @@ pipeline {
                     }
                     dir('demo/service-springboot-rest') {
                         sh '''
-                            mvn sonar:sonar \
+                           mvn org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
                                 -Dsonar.projectKey=${SONAR_KEY_SVC} \
                                 -Dsonar.projectName="POC Keycloak - Service REST" \
                                 -Dsonar.java.source=17 \
@@ -252,6 +258,7 @@ pipeline {
                     }
                     post {
                         always {
+
                             archiveArtifacts artifacts: 'trivy-image-app.txt', allowEmptyArchive: true
                         }
                     }

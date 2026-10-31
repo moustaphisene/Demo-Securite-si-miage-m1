@@ -225,7 +225,7 @@ Expires : No expiration
 ```
 
 Clique **Generate** → **copie immédiatement le token** (il ne sera plus affiché).
-
+token:sqa_b12f7b350e29707fabe4dcdaaf895e04265be988
 ### 3.3 — Créer un Webhook vers Jenkins
 
 SonarQube doit notifier Jenkins quand l'analyse est terminée (requis par `waitForQualityGate`).
